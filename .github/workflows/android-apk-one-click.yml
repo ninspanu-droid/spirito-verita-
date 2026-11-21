@@ -361,7 +361,7 @@ jobs:
           test -f android/gradlew
           test -f android/app/build.gradle
 
-      - name: Build and verify installable APK without Expo account
+      - name: Build standalone release APK and verify embedded JavaScript
         if: steps.build-mode.outputs.mode == 'local'
         shell: bash
         run: |
@@ -370,11 +370,43 @@ jobs:
           chmod +x gradlew
           # Debug variant is automatically signed with Android's generated debug key,
           # making the APK directly installable without a private release keystore.
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace
-          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+          # Release embeds the Expo/Metro JS bundle; debug builds require a Metro server.
+          # Expo prebuild defaults local release builds to the debug signing key if no private key exists.
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
           if [ ! -s "$APK_PATH" ]; then
             echo "Gradle non ha prodotto un APK release." >&2
             find app/build/outputs -type f -maxdepth 6 -print || true
+            exit 1
+          fi
+          # Refuse to publish an APK that cannot start without a Metro server.
+          if ! unzip -Z1 "$APK_PATH" | grep -Eq '^assets/index\\.android\\.bundle
+          if [ -z "$APKSIGNER" ]; then
+            echo "apksigner non trovato: impossibile verificare la firma dell'APK." >&2
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose "$APK_PATH"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
+          echo "APK release autonomo: bundle JavaScript presente e firma verificata."
+
+      - name: Publish APK and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spirito-verita-android-apk-${{ github.run_number }}
+          path: |
+            spirito-verita.apk
+            package-lock.json
+            eas-build.json
+            eas-build-stderr.log
+            eas-download.json
+            eas-download-stderr.log
+            local-android-build.log
+          if-no-files-found: warn
+          retention-days: 14
+; then
+            echo "Bundle JavaScript assets/index.android.bundle assente dall'APK release." >&2
+            unzip -Z1 "$APK_PATH" | grep '^assets/' || true
             exit 1
           fi
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"

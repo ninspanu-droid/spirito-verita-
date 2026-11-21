@@ -1,0 +1,146 @@
+name: Build Android APK (one click)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spirito-verita-android-apk
+  cancel-in-progress: false
+
+jobs:
+  build-apk:
+    name: Validate and build installable APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The supplied project ZIP has no lockfile. Generate one, then commit it
+      # locally so EAS sees a clean Git working tree and uploads the lockfile.
+      - name: Bootstrap and commit npm lockfile
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: generate package lock for Android build"
+          fi
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify project identity and EAS linkage
+        run: |
+          npm run check:app-identifiers
+          npm run check:eas-project
+          npm run check:release-config
+          npm run check:release-readiness
+
+      - name: Check Expo SDK dependency compatibility
+        run: npx --yes expo install --check
+
+      - name: Run automated tests
+        run: npm run test:all
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Expo Doctor
+        run: npx --yes expo-doctor
+
+      - name: Verify Expo account token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Missing GitHub Actions secret EXPO_TOKEN" >&2
+            exit 1
+          fi
+          npx --yes eas-cli@latest whoami
+
+      # Do not run expo prebuild in the GitHub workspace before EAS Build:
+      # it creates uncommitted android/ files and EAS rejects a dirty Git tree.
+      # EAS Build runs the native prebuild on its remote builder.
+      - name: Build APK with EAS and download it
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          BUILD_JSON="$RUNNER_TEMP/eas-build.json"
+          BUILD_STDERR="$RUNNER_TEMP/eas-build-stderr.log"
+          DOWNLOAD_JSON="$RUNNER_TEMP/eas-download.json"
+          DOWNLOAD_STDERR="$RUNNER_TEMP/eas-download-stderr.log"
+
+          npx --yes eas-cli@latest build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --wait \
+            --json > "$BUILD_JSON" 2> "$BUILD_STDERR"
+
+          BUILD_ID="$(node -e '
+            const fs = require("node:fs");
+            const raw = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+            const builds = Array.isArray(raw) ? raw : [raw];
+            const build = builds.find(item => item && typeof item.id === "string");
+            if (!build) {
+              console.error("EAS non ha restituito un ID build valido.");
+              process.exit(1);
+            }
+            if (build.status && build.status !== "FINISHED") {
+              console.error("Stato EAS inatteso: " + build.status);
+              process.exit(1);
+            }
+            process.stdout.write(build.id);
+          ' "$BUILD_JSON")"
+
+          echo "Build EAS completata: $BUILD_ID"
+
+          npx --yes eas-cli@latest build:download \
+            --build-id "$BUILD_ID" \
+            --non-interactive \
+            --json > "$DOWNLOAD_JSON" 2> "$DOWNLOAD_STDERR"
+
+          APK_PATH="$(find . -type f -iname '*.apk' \
+            -not -path './.git/*' \
+            -not -path './node_modules/*' \
+            -print -quit)"
+          if [ -z "$APK_PATH" ]; then
+            echo "EAS non ha scaricato alcun file APK." >&2
+            exit 1
+          fi
+
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
+          echo "APK pronto: spirito-verita.apk"
+
+          cp "$BUILD_JSON" "$GITHUB_WORKSPACE/eas-build.json"
+          cp "$BUILD_STDERR" "$GITHUB_WORKSPACE/eas-build-stderr.log"
+          cp "$DOWNLOAD_JSON" "$GITHUB_WORKSPACE/eas-download.json"
+          cp "$DOWNLOAD_STDERR" "$GITHUB_WORKSPACE/eas-download-stderr.log"
+
+      - name: Publish APK and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spirito-verita-android-apk-${{ github.run_number }}
+          path: |
+            spirito-verita.apk
+            package-lock.json
+            eas-build.json
+            eas-build-stderr.log
+            eas-download.json
+            eas-download-stderr.log
+          if-no-files-found: warn
+          retention-days: 14

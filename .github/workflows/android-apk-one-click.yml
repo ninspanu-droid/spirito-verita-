@@ -368,10 +368,10 @@ jobs:
           set -Eeuo pipefail
           cd android
           chmod +x gradlew
-          # Debug variant is automatically signed with Android's generated debug key,
-          # making the APK directly installable without a private release keystore.
-          # Release embeds the Expo/Metro JS bundle; debug builds require a Metro server.
-          # Expo's generated template signs local release builds with the debug key if no private key exists.
+          # The standalone release variant embeds the Expo/Metro JS bundle.
+          # With no private release keystore configured, Expo's generated template
+          # signs this local release APK using the generated Android debug key.
+          # It is installable for testing, but is not a production Play Store signing identity.
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
           APK_PATH="app/build/outputs/apk/release/app-release.apk"
           if [ ! -s "$APK_PATH" ]; then

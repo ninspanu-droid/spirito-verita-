@@ -394,6 +394,37 @@ jobs:
           cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
           echo "APK release autonomo: bundle JavaScript presente e firma verificata."
 
+      # Build success is not proof that React Native starts. Install and launch
+      # the exact APK in a clean Android emulator before publishing the artifact.
+      - name: Install and smoke-test APK on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            set -Eeuo pipefail
+            APK="$GITHUB_WORKSPACE/spirito-verita.apk"
+            test -s "$APK"
+            adb install -r "$APK"
+            adb logcat -c
+            adb shell am force-stop it.spiritoeverita.app
+            adb shell monkey -p it.spiritoeverita.app 1
+            sleep 20
+            adb logcat -d -v time > "$GITHUB_WORKSPACE/startup-logcat.txt"
+            if [ -z "$(adb shell pidof -s it.spiritoeverita.app | tr -d '\r')" ]; then
+              echo "L'app non è rimasta attiva dopo l'avvio." >&2
+              tail -200 "$GITHUB_WORKSPACE/startup-logcat.txt" >&2
+              exit 1
+            fi
+            if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|ReactNativeJS.*(Error|Exception|Invariant Violation)" "$GITHUB_WORKSPACE/startup-logcat.txt"; then
+              echo "Rilevato un errore di avvio nell'APK." >&2
+              exit 1
+            fi
+            echo "APK installato e processo app attivo dopo 20 secondi."
+
       - name: Publish APK and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -407,5 +438,6 @@ jobs:
             eas-download.json
             eas-download-stderr.log
             local-android-build.log
+            startup-logcat.txt
           if-no-files-found: warn
           retention-days: 14

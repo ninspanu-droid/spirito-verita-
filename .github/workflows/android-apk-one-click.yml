@@ -52,7 +52,31 @@ jobs:
           fi
           test -f package.json
           test -f eas.json
-          echo "Sorgenti app ripristinati:"
+
+          # Link the restored app to its already assigned EAS project.
+          # Fail closed if the source bundle contains a conflicting ID.
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'app.json';
+          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+          config.expo ??= {};
+          config.expo.extra ??= {};
+          config.expo.extra.eas ??= {};
+          const expected = 'c41cc0f6-cbd5-4a4b-b036-3b9efa0f6828';
+          const current = config.expo.extra.eas.projectId;
+          if (current && current !== expected) {
+            throw new Error('app.json contiene un projectId EAS diverso da quello assegnato al progetto.');
+          }
+          config.expo.extra.eas.projectId = expected;
+          fs.writeFileSync(file, JSON.stringify(config, null, 2) + '\\n');
+          NODE
+          git add app.json
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "ci: restore EAS project linkage"
+          fi
+          echo "Sorgenti app ripristinati e collegamento EAS verificato:"
           ls -la | head -40
 
       - name: Setup Node.js

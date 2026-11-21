@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: write
-  workflows: write
 
 concurrency:
   group: spirito-verita-android-apk
@@ -50,6 +49,9 @@ jobs:
             rsync -a --exclude='.git' "$PROJECT/" "$GITHUB_WORKSPACE/"
             cp "$ACTIVE_WORKFLOW" .github/workflows/android-apk-one-click.yml
             git add -A
+            # Keep the repository's existing workflow files untouched; the
+            # restored copies are needed for tests but require separate review.
+            git reset -- .github/workflows
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "ci: restore application source and supporting workflows"

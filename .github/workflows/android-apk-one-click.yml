@@ -159,6 +159,13 @@ jobs:
           fi
           node --test --test-concurrency=1 "${TEST_FILES[@]}"
 
+      # Keep the secure database startup and key-loss safeguards visible as
+      # dedicated release gates, in addition to the general application suite.
+      - name: Run focused SQLCipher startup regression tests
+        run: |
+          npm run test:sqlcipher-bootstrap
+          npm run test:sqlcipher-key
+
       - name: Link application to the assigned EAS project
         run: |
           node <<'NODE'

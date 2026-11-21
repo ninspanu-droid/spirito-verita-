@@ -368,8 +368,10 @@ jobs:
           set -Eeuo pipefail
           cd android
           chmod +x gradlew
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace
-          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          # Debug variant is automatically signed with Android's generated debug key,
+          # making the APK directly installable without a private release keystore.
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+          APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
           if [ ! -s "$APK_PATH" ]; then
             echo "Gradle non ha prodotto un APK release." >&2
             find app/build/outputs -type f -maxdepth 6 -print || true

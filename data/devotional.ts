@@ -15,10 +15,10 @@ export const todayDevotional: Devotional = {
 };
 
 export const prayerCategories = [
-  { title: 'Al mattino', detail: 'Affida a Dio l’inizio della giornata.', icon: 'sunrise' as const },
+  { title: 'Al mattino', detail: 'Affida a Dio l’inizio della giornata.', icon: 'sunny' as const },
   { title: 'Nei momenti difficili', detail: 'Trova parole quando il cuore è stanco.', icon: 'heart' as const },
-  { title: 'Per la famiglia', detail: 'Prega per le persone che ami.', icon: 'users' as const },
-  { title: 'Per ringraziare', detail: 'Riconosci i doni ricevuti.', icon: 'hand-heart' as const },
+  { title: 'Per la famiglia', detail: 'Prega per le persone che ami.', icon: 'people' as const },
+  { title: 'Per ringraziare', detail: 'Riconosci i doni ricevuti.', icon: 'heart-circle' as const },
 ];
 
 export const bibleTopics = [

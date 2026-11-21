@@ -2,11 +2,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SQLiteProvider } from 'expo-sqlite';
 import { colors } from '../constants/theme';
+import { DatabaseStartupBoundary } from '../components/DatabaseStartupBoundary';
 import { initializeSecureDatabase, secureDatabaseNames } from '../database/secureDatabase';
 
 export default function RootLayout() {
   return (
-    <SQLiteProvider databaseName={secureDatabaseNames.encrypted} onInit={initializeSecureDatabase}>
+    <DatabaseStartupBoundary>
+      <SQLiteProvider databaseName={secureDatabaseNames.encrypted} onInit={initializeSecureDatabase}>
       <>
         <StatusBar style="light" backgroundColor={colors.forest} />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ivory } }}>
@@ -17,6 +19,7 @@ export default function RootLayout() {
           <Stack.Screen name="modulo/[id]" options={{ presentation: 'card' }} />
         </Stack>
       </>
-    </SQLiteProvider>
+      </SQLiteProvider>
+    </DatabaseStartupBoundary>
   );
 }

@@ -22,6 +22,39 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      # The main branch stores the complete project as a Git bundle because
+      # the source tree was uploaded as an archive instead of extracted files.
+      # Restore the original app source before installing npm dependencies.
+      - name: Restore application source from repository Git bundle
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [ ! -f package.json ]; then
+            BUNDLE="$RUNNER_TEMP/spirito-source.bundle"
+            PROJECT="$RUNNER_TEMP/spirito-source"
+            curl --fail --silent --show-error --location \
+              "https://raw.githubusercontent.com/ninspanu-droid/spirito-verita-/main/spirito_verita_v10_6_6_test-stability.bundle" \
+              --output "$BUNDLE"
+            git bundle verify "$BUNDLE"
+            git fetch "$BUNDLE" refs/heads/main
+            mkdir -p "$PROJECT"
+            git archive FETCH_HEAD | tar -x -C "$PROJECT"
+            if [ ! -f "$PROJECT/package.json" ]; then
+              echo "Il bundle Git non contiene package.json alla radice." >&2
+              find "$PROJECT" -maxdepth 3 -type f | head -80
+              exit 1
+            fi
+            rsync -a --exclude='.git' --exclude='.github' "$PROJECT/" "$GITHUB_WORKSPACE/"
+            git add -A
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "ci: restore application source from Git bundle"
+          fi
+          test -f package.json
+          test -f eas.json
+          echo "Sorgenti app ripristinati:"
+          ls -la | head -40
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

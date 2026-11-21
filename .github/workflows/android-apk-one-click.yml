@@ -2,6 +2,9 @@ name: Build Android APK (one click)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - publish/v10.6.5
 
 permissions:
   contents: read

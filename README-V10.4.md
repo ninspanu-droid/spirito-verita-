@@ -1,0 +1,1 @@
+# SPIRITO & VERITÀ V10.4\n\nVersione applicativa: **1.0.40**.\n\nNuovo controllo GitHub/EAS: `npm run check:handoff`. Procedura: `docs/V10-4-CONSEGNA-GITHUB-EAS.md`.\n\nNon è un APK già compilato: lockfile, Project ID EAS, secret `EXPO_TOKEN` e build cloud richiedono ancora i passaggi descritti.\n

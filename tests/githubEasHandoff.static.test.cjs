@@ -1,0 +1,14 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const pkg = require(path.join(root, 'package.json'));
+const app = require(path.join(root, 'app.json')).expo;
+const script = fs.readFileSync(path.join(root, 'scripts/check-github-eas-handoff.cjs'), 'utf8');
+test('versione V10.4 allineata', () => { assert.equal(pkg.version, '1.0.42'); assert.equal(app.version, '1.0.42'); });
+test('comando handoff GitHub/EAS dichiarato', () => { assert.equal(pkg.scripts['check:handoff'], 'node scripts/check-github-eas-handoff.cjs'); });
+test('handoff verifica protezione di .env e node_modules', () => { assert.match(script, /gitignore protegge \.env/); assert.match(script, /gitignore protegge node_modules/); });
+test('handoff impedisce token hardcoded nelle configurazioni', () => { assert.match(script, /nessun EXPO_TOKEN letterale/); assert.match(script, /GitHub Secrets/); });
+test('handoff controlla identificatori, profilo APK, workflow e Project ID', () => { for (const p of [/identificatore Android presente/, /identificatore iOS presente/, /profilo EAS preview genera APK/, /workflow lockfile presente/, /workflow Android preview presente/, /Project ID EAS valorizzato/]) assert.match(script,p); });
+test('handoff considera il lockfile un prerequisito', () => { assert.match(script, /package-lock\.json presente/); });

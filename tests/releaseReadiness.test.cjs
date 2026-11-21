@@ -1,0 +1,15 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const script = fs.readFileSync(path.join(root, 'scripts/check-release-readiness.cjs'), 'utf8');
+const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+const app = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo;
+const eas = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
+test('release gate controlla versioni sincronizzate', () => { assert.match(script, /app\.version !== pkg\.version/); });
+test('release gate conserva gli identificatori Android e iOS', () => { assert.match(script, /it\.spiritoeverita\.app/); assert.equal(app.android.package, app.ios.bundleIdentifier); });
+test('release gate richiede backup Android disabilitato e SQLCipher', () => { assert.match(script, /allowBackup !== false/); assert.match(script, /useSQLCipher !== true/); });
+test('release gate richiede profili preview e production', () => { assert.ok(eas.build.preview && eas.build.production); assert.match(script, /build\?\.preview/); });
+test('release gate non accetta projectId inventati o assenti', () => { assert.match(script, /projectId EAS mancante\/non valido/); assert.match(script, /uuid\.test\(projectId\)/); assert.doesNotMatch(JSON.stringify(app.extra?.eas || {}), /projectId/); });
+test('release gate dichiara che il controllo statico non certifica SQLCipher nativo', () => { assert.match(script, /non sostituisce build nativa/); });

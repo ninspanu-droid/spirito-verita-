@@ -44,39 +44,18 @@ jobs:
               find "$PROJECT" -maxdepth 3 -type f | head -80
               exit 1
             fi
-            rsync -a --exclude='.git' --exclude='.github' "$PROJECT/" "$GITHUB_WORKSPACE/"
+            ACTIVE_WORKFLOW="$RUNNER_TEMP/android-apk-one-click.yml"
+            cp .github/workflows/android-apk-one-click.yml "$ACTIVE_WORKFLOW"
+            rsync -a --exclude='.git' "$PROJECT/" "$GITHUB_WORKSPACE/"
+            cp "$ACTIVE_WORKFLOW" .github/workflows/android-apk-one-click.yml
             git add -A
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "ci: restore application source from Git bundle"
+            git commit -m "ci: restore application source and supporting workflows"
           fi
           test -f package.json
           test -f eas.json
-
-          # Link the restored app to its already assigned EAS project.
-          # Fail closed if the source bundle contains a conflicting ID.
-          node <<'NODE'
-          const fs = require('node:fs');
-          const file = 'app.json';
-          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
-          config.expo ??= {};
-          config.expo.extra ??= {};
-          config.expo.extra.eas ??= {};
-          const expected = 'c41cc0f6-cbd5-4a4b-b036-3b9efa0f6828';
-          const current = config.expo.extra.eas.projectId;
-          if (current && current !== expected) {
-            throw new Error('app.json contiene un projectId EAS diverso da quello assegnato al progetto.');
-          }
-          config.expo.extra.eas.projectId = expected;
-          fs.writeFileSync(file, JSON.stringify(config, null, 2) + String.fromCharCode(10));
-          NODE
-          git add app.json
-          if ! git diff --cached --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "ci: restore EAS project linkage"
-          fi
-          echo "Sorgenti app ripristinati e collegamento EAS verificato:"
+          echo "Sorgenti app e workflow di supporto ripristinati:"
           ls -la | head -40
 
       - name: Setup Node.js
@@ -111,18 +90,44 @@ jobs:
             git commit -m "fix(deps): align React Native with Expo SDK"
           fi
 
+      - name: Check Expo SDK dependency compatibility
+        run: npx --yes expo install --check
+
+      # Run the source tests against the unmodified application config first.
+      # The assigned EAS ID is injected only after these tests have completed.
+      - name: Run automated tests
+        run: npm run test:all
+
+      - name: Link application to the assigned EAS project
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'app.json';
+          const config = JSON.parse(fs.readFileSync(file, 'utf8'));
+          config.expo ??= {};
+          config.expo.extra ??= {};
+          config.expo.extra.eas ??= {};
+          const expected = 'c41cc0f6-cbd5-4a4b-b036-3b9efa0f6828';
+          const current = config.expo.extra.eas.projectId;
+          if (current && current !== expected) {
+            throw new Error('app.json contiene un projectId EAS diverso da quello assegnato al progetto.');
+          }
+          config.expo.extra.eas.projectId = expected;
+          fs.writeFileSync(file, JSON.stringify(config, null, 2) + String.fromCharCode(10));
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.json
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: link app to assigned EAS project"
+          fi
+
       - name: Verify project identity and EAS linkage
         run: |
           npm run check:app-identifiers
           npm run check:eas-project
           npm run check:release-config
           npm run check:release-readiness
-
-      - name: Check Expo SDK dependency compatibility
-        run: npx --yes expo install --check
-
-      - name: Run automated tests
-        run: npm run test:all
 
       - name: TypeScript check
         run: npm run typecheck

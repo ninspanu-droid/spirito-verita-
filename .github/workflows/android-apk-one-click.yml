@@ -209,20 +209,25 @@ jobs:
           git status --short
           git push origin HEAD:publish/v10.6.5
 
-      - name: Verify Expo account token
+      - name: Select Android build backend
+        id: build-mode
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        shell: bash
         run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "Missing GitHub Actions secret EXPO_TOKEN" >&2
-            exit 1
+          if [ -n "${EXPO_TOKEN:-}" ] && npx --yes eas-cli@latest whoami >/dev/null 2>&1; then
+            echo "mode=eas" >> "$GITHUB_OUTPUT"
+            echo "Autenticazione Expo valida: userò EAS Build."
+          else
+            echo "mode=local" >> "$GITHUB_OUTPUT"
+            echo "Token Expo assente/non valido: userò la compilazione Android locale."
           fi
-          npx --yes eas-cli@latest whoami
 
       # Do not run expo prebuild in the GitHub workspace before EAS Build:
       # it creates uncommitted android/ files and EAS rejects a dirty Git tree.
       # EAS Build runs the native prebuild on its remote builder.
       - name: Build APK with EAS and download it
+        if: steps.build-mode.outputs.mode == 'eas'
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         shell: bash
@@ -280,6 +285,56 @@ jobs:
           cp "$DOWNLOAD_JSON" "$GITHUB_WORKSPACE/eas-download.json"
           cp "$DOWNLOAD_STDERR" "$GITHUB_WORKSPACE/eas-download-stderr.log"
 
+      - name: Setup Java for local Android build
+        if: steps.build-mode.outputs.mode == 'local'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK for local build
+        if: steps.build-mode.outputs.mode == 'local'
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        if: steps.build-mode.outputs.mode == 'local'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.1.12297006"
+
+      - name: Generate native Android project
+        if: steps.build-mode.outputs.mode == 'local'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npx --yes expo prebuild --platform android --clean --non-interactive
+          test -f android/gradlew
+          test -f android/app/build.gradle
+
+      - name: Build and verify installable APK without Expo account
+        if: steps.build-mode.outputs.mode == 'local'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cd android
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -s "$APK_PATH" ]; then
+            echo "Gradle non ha prodotto un APK release." >&2
+            find app/build/outputs -type f -maxdepth 6 -print || true
+            exit 1
+          fi
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          if [ -z "$APKSIGNER" ]; then
+            echo "apksigner non trovato: impossibile verificare la firma dell'APK." >&2
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose "$APK_PATH"
+          cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
+          echo "APK locale compilato e firma verificata."
+
       - name: Publish APK and diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -292,5 +347,6 @@ jobs:
             eas-build-stderr.log
             eas-download.json
             eas-download-stderr.log
+            local-android-build.log
           if-no-files-found: warn
           retention-days: 14

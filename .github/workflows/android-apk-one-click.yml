@@ -205,7 +205,10 @@ jobs:
             }
           }
           for (const root of roots) visit(root);
-          if (!changed.length) throw new Error('Nessun nome icona non supportato trovato nei sorgenti.');
+          if (changed.length) {
+            } else {
+            process.stdout.write('Nessuna icona da correggere: i sorgenti risultano già allineati.\n');
+          }
           process.stdout.write('Icone corrette in: ' + changed.join(', ') + '\n');
           NODE
           git config user.name "github-actions[bot]"

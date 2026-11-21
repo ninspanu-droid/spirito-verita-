@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: spirito-verita-android-apk-v3
+  group: spirito-verita-android-apk-v4
   cancel-in-progress: false
 
 jobs:
@@ -411,6 +411,10 @@ jobs:
       # the exact APK in a clean Android emulator before publishing the artifact.
       - name: Install and smoke-test APK on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
+        # GitHub-hosted runners may not expose KVM. The emulator action then
+        # starts with -accel off; Android Emulator requires explicit TCG opt-in.
+        env:
+          ANDROID_I_WANT_MY_TCG: "yes"
         with:
           api-level: 35
           target: google_apis

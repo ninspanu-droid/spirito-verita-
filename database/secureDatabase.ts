@@ -140,25 +140,37 @@ async function migrateLegacyDatabase(target: SQLiteDatabase): Promise<void> {
 
 /** Called by SQLiteProvider before any app query is allowed. */
 export async function initializeSecureDatabase(db: SQLiteDatabase): Promise<void> {
-  const cipher = await db.getFirstAsync<CipherVersionRow>('PRAGMA cipher_version');
-  if (!cipher?.cipher_version) {
-    throw new Error(
-      'SQLCipher non è presente in questa build. Non è sicuro proseguire: crea una build nativa con useSQLCipher attivo.'
-    );
+  try {
+    const cipher = await db.getFirstAsync<CipherVersionRow>('PRAGMA cipher_version');
+    if (!cipher?.cipher_version) {
+      throw new Error(
+        'SQLCipher non è presente in questa build. Non è sicuro proseguire: crea una build nativa con useSQLCipher attivo.'
+      );
+    }
+  
+    const keyHex = await getOrCreateDatabaseKey(db);
+    // The key is generated locally as exactly 32 random bytes represented by hex.
+    // It is never logged or sent to a server.
+    await db.execAsync(`PRAGMA key = "x'${keyHex}'"`);
+  
+    // Force an authenticated read before schema creation or app queries.
+    await db.getFirstAsync<{ name: string }>('SELECT name FROM sqlite_master LIMIT 1');
+    // Create the schema without seeding first, so legacy rows win on ID collisions.
+    await initializeDatabase(db, false);
+    await migrateLegacyDatabase(db);
+    // Add only seed rows that were not present in the legacy database.
+    await initializeDatabase(db, true);
+  } catch (error) {
+    // SQLiteProvider does not retain the handle when onInit rejects. Close it
+    // here so a retry cannot leak a native connection to the same database.
+    try {
+      await db.closeAsync();
+    } catch {
+      // Preserve the original initialization error; close failure is secondary.
+    }
+    throw error;
   }
 
-  const keyHex = await getOrCreateDatabaseKey(db);
-  // The key is generated locally as exactly 32 random bytes represented by hex.
-  // It is never logged or sent to a server.
-  await db.execAsync(`PRAGMA key = "x'${keyHex}'"`);
-
-  // Force an authenticated read before schema creation or app queries.
-  await db.getFirstAsync<{ name: string }>('SELECT name FROM sqlite_master LIMIT 1');
-  // Create the schema without seeding first, so legacy rows win on ID collisions.
-  await initializeDatabase(db, false);
-  await migrateLegacyDatabase(db);
-  // Add only seed rows that were not present in the legacy database.
-  await initializeDatabase(db, true);
 }
 
 export const secureDatabaseNames = {

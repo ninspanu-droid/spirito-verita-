@@ -26,7 +26,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       # The supplied project ZIP has no lockfile. Generate one, then commit it
       # locally so EAS sees a clean Git working tree and uploads the lockfile.

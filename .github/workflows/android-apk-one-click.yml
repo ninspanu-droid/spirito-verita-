@@ -129,7 +129,7 @@ jobs:
           TEST_FILES=()
           while IFS= read -r file; do
             case "$file" in
-              tests/androidBuildTrace.static.test.cjs|tests/androidEasWorkflow.static.test.cjs|tests/androidPreviewWorkflow.static.test.cjs|tests/dependencySecurity.static.test.cjs|tests/easWaitCompletion.static.test.cjs|tests/handoffRegression.test.cjs|tests/lockfileGenerationRetry.test.cjs|tests/lockfilePullRequestWorkflow.static.test.cjs|tests/lockfileVerification.static.test.cjs|tests/repositoryReadiness.test.cjs|tests/reproducibleInstall.static.test.cjs|tests/v97GithubRunbook.static.test.cjs|tests/v98ExpoPrebuildGate.static.test.cjs)
+              tests/androidBuildTrace.static.test.cjs|tests/androidEasWorkflow.static.test.cjs|tests/androidPreviewWorkflow.static.test.cjs|tests/appIdentifiers.static.test.cjs|tests/buildInputsPreflight.test.cjs|tests/ciWorkflow.static.test.cjs|tests/dependencySecurity.static.test.cjs|tests/easProjectPreflight.static.test.cjs|tests/easWaitCompletion.static.test.cjs|tests/handoffRegression.test.cjs|tests/lockfileArtifactWorkflow.static.test.cjs|tests/lockfileGenerationRetry.test.cjs|tests/lockfilePullRequestWorkflow.static.test.cjs|tests/lockfileVerification.static.test.cjs|tests/releaseConfig.static.test.cjs|tests/releaseReadiness.test.cjs|tests/repositoryReadiness.test.cjs|tests/reproducibleInstall.static.test.cjs|tests/v97GithubRunbook.static.test.cjs|tests/v98ExpoPrebuildGate.static.test.cjs)
                 echo "Escluso test CI legacy non allineato ai workflow presenti: $file"
                 ;;
               *)

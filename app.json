@@ -25,10 +25,16 @@
         {
           "useSQLCipher": true
         }
-      ]
+      ],
+      "expo-font"
     ],
     "ios": {
       "bundleIdentifier": "it.spiritoeverita.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c41cc0f6-cbd5-4a4b-b036-3b9efa0f6828"
+      }
     }
   }
 }

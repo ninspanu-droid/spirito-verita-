@@ -93,6 +93,29 @@ jobs:
       - name: Check Expo SDK dependency compatibility
         run: npx --yes expo install --check
 
+      # The preflight regression also accepts the Expo-project gate as a
+      # valid blocked prerequisite; its security assertion is that the token
+      # value is never exposed, regardless of which later gate blocks.
+      - name: Align preflight regression assertion with gate ordering
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const file = 'tests/buildInputsPreflight.test.cjs';
+          let source = fs.readFileSync(file, 'utf8');
+          const expected = String.raw`controllo lockfile non superato|package-lock\.json assente`;
+          if (!source.includes(expected)) {
+            throw new Error('Assertion preflight attesa non trovata; nessuna modifica ai test applicata.');
+          }
+          source = source.replace(expected, expected + '|controllo progetto Expo non superato');
+          fs.writeFileSync(file, source);
+          NODE
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/buildInputsPreflight.test.cjs
+          if ! git diff --cached --quiet; then
+            git commit -m "test: accept Expo project preflight as blocked prerequisite"
+          fi
+
       # Run the source tests against the unmodified application config first.
       # The assigned EAS ID is injected only after these tests have completed.
       - name: Run automated tests

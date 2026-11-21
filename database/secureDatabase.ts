@@ -147,12 +147,12 @@ export async function initializeSecureDatabase(db: SQLiteDatabase): Promise<void
         'SQLCipher non è presente in questa build. Non è sicuro proseguire: crea una build nativa con useSQLCipher attivo.'
       );
     }
-  
+
     const keyHex = await getOrCreateDatabaseKey(db);
     // The key is generated locally as exactly 32 random bytes represented by hex.
     // It is never logged or sent to a server.
     await db.execAsync(`PRAGMA key = "x'${keyHex}'"`);
-  
+
     // Force an authenticated read before schema creation or app queries.
     await db.getFirstAsync<{ name: string }>('SELECT name FROM sqlite_master LIMIT 1');
     // Create the schema without seeding first, so legacy rows win on ID collisions.
@@ -170,7 +170,6 @@ export async function initializeSecureDatabase(db: SQLiteDatabase): Promise<void
     }
     throw error;
   }
-
 }
 
 export const secureDatabaseNames = {

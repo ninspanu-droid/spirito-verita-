@@ -36,9 +36,10 @@ jobs:
               "https://raw.githubusercontent.com/ninspanu-droid/spirito-verita-/main/spirito_verita_v10_6_6_test-stability.bundle" \
               --output "$BUNDLE"
             git bundle verify "$BUNDLE"
-            git fetch "$BUNDLE" refs/heads/main
-            mkdir -p "$PROJECT"
-            git archive FETCH_HEAD | tar -x -C "$PROJECT"
+            # Clone the bundle instead of using git archive: archive can omit
+            # files marked export-ignore (including CI workflow fixtures used by tests).
+            git clone --no-checkout "$BUNDLE" "$PROJECT"
+            git -C "$PROJECT" checkout -f refs/heads/main
             if [ ! -f "$PROJECT/package.json" ]; then
               echo "Il bundle Git non contiene package.json alla radice." >&2
               find "$PROJECT" -maxdepth 3 -type f | head -80

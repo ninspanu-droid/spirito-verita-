@@ -7,7 +7,7 @@ on:
       - publish/v10.6.5
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: spirito-verita-android-apk
@@ -198,6 +198,13 @@ jobs:
 
       - name: Expo Doctor
         run: npx --yes expo-doctor
+
+      # Persist the fully restored and validated app source (including the
+      # dependency, icon, and EAS-link fixes) to the release branch.
+      - name: Publish validated source and fixes to release branch
+        run: |
+          git status --short
+          git push origin HEAD:publish/v10.6.5
 
       - name: Verify Expo account token
         env:

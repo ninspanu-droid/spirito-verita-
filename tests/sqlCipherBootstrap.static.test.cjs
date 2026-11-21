@@ -42,3 +42,7 @@ test('la chiave ha 32 byte casuali e viene verificata in SecureStore', () => {
   assert.match(keyResolver, /confirmed !== generated/);
   assert.match(keyResolver, /isDatabaseEmptyBeforeKey\(\)/);
 });
+
+test('chiude la connessione nativa se il bootstrap asincrono fallisce', () => {
+  assert.match(bootstrap, /catch \(error\)[\s\S]*?await db\.closeAsync\(\)[\s\S]*?throw error/);
+});

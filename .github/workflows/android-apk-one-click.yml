@@ -152,30 +152,45 @@ jobs:
           npm run check:release-config
           npm run check:release-readiness
 
-      # Correct icon names in the prayer screen to values supported by
-      # the installed Expo icon set; keep the semantic intent of each tile.
+      # Correct unsupported icon-name string literals wherever the prayer
+      # screen's data is defined, while preserving their intended semantics.
       - name: Fix unsupported prayer icon identifiers
         run: |
           node <<'NODE'
           const fs = require('node:fs');
-          const file = 'app/(tabs)/preghiera.tsx';
-          let source = fs.readFileSync(file, 'utf8');
-          const replacements = [
+          const path = require('node:path');
+          const roots = ['app', 'data', 'src', 'components'];
+          const replacements = new Map([
             ['sunrise', 'sunny'],
             ['users', 'people'],
             ['hand-heart', 'heart-circle'],
-          ];
-          for (const [from, to] of replacements) {
-            source = source.replaceAll("'" + from + "'", "'" + to + "'");
-            source = source.replaceAll('"' + from + '"', '"' + to + '"');
+          ]);
+          const changed = [];
+          function visit(dir) {
+            if (!fs.existsSync(dir)) return;
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) visit(full);
+              else if (/\.(?:ts|tsx|js|jsx)$/.test(entry.name)) {
+                const before = fs.readFileSync(full, 'utf8');
+                const after = before.replace(/(["'`])(sunrise|users|hand-heart)\1/g,
+                  (match, quote, name) => quote + replacements.get(name) + quote);
+                if (after !== before) {
+                  fs.writeFileSync(full, after);
+                  changed.push(full);
+                }
+              }
+            }
           }
-          fs.writeFileSync(file, source);
+          for (const root of roots) visit(root);
+          if (!changed.length) throw new Error('Nessun nome icona non supportato trovato nei sorgenti.');
+          process.stdout.write('Icone corrette in: ' + changed.join(', ') + '\n');
           NODE
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "app/(tabs)/preghiera.tsx"
+          git add app data src components
           if ! git diff --cached --quiet; then
-            git commit -m "fix(ui): use supported prayer icon identifiers"
+            git commit -m "fix(ui): replace unsupported prayer icon identifiers"
           fi
 
       - name: TypeScript check

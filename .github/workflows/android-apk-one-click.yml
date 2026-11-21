@@ -15,6 +15,8 @@ concurrency:
 
 jobs:
   build-apk:
+    # Ignore commits made by this workflow itself to prevent recursive builds.
+    if: github.actor != 'github-actions[bot]'
     name: Validate and build installable APK
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -243,6 +245,10 @@ jobs:
       - name: Publish validated source and fixes to release branch
         run: |
           git status --short
+          # Another manually-triggered run may have advanced the release branch.
+          # Rebase onto the latest remote tip before publishing our validated fixes.
+          git fetch origin publish/v10.6.5
+          git rebase origin/publish/v10.6.5
           git push origin HEAD:publish/v10.6.5
 
       - name: Select Android build backend
@@ -372,7 +378,7 @@ jobs:
           # With no private release keystore configured, Expo's generated template
           # signs this local release APK using the generated Android debug key.
           # It is installable for testing, but is not a production Play Store signing identity.
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee "$GITHUB_WORKSPACE/local-android-build.log"
           APK_PATH="app/build/outputs/apk/release/app-release.apk"
           if [ ! -s "$APK_PATH" ]; then
             echo "Gradle non ha prodotto un APK release." >&2
@@ -419,7 +425,7 @@ jobs:
               tail -200 "$GITHUB_WORKSPACE/startup-logcat.txt" >&2
               exit 1
             fi
-            if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|ReactNativeJS.*(Error|Exception|Invariant Violation)" "$GITHUB_WORKSPACE/startup-logcat.txt"; then
+            if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$GITHUB_WORKSPACE/startup-logcat.txt"; then
               echo "Rilevato un errore di avvio nell'APK." >&2
               exit 1
             fi

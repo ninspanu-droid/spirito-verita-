@@ -314,9 +314,22 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Setup Android SDK for local build
+      - name: Configure preinstalled Android SDK for local build
         if: steps.build-mode.outputs.mode == 'local'
-        uses: android-actions/setup-android@v3
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          if [ -z "$SDKMANAGER" ]; then
+            echo "sdkmanager non trovato nel runner GitHub." >&2
+            exit 1
+          fi
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
 
       - name: Install Android SDK components
         if: steps.build-mode.outputs.mode == 'local'

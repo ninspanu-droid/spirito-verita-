@@ -99,6 +99,18 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      # Expo SDK 53 requires React Native 0.79.6. Align the exact package
+      # version before running the compatibility gate and building the APK.
+      - name: Align React Native with Expo SDK
+        run: |
+          npx --yes expo install react-native@0.79.6
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(deps): align React Native with Expo SDK"
+          fi
+
       - name: Verify project identity and EAS linkage
         run: |
           npm run check:app-identifiers

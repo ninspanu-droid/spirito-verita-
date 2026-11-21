@@ -371,7 +371,7 @@ jobs:
           # Debug variant is automatically signed with Android's generated debug key,
           # making the APK directly installable without a private release keystore.
           # Release embeds the Expo/Metro JS bundle; debug builds require a Metro server.
-          # Expo prebuild defaults local release builds to the debug signing key if no private key exists.
+          # Expo's generated template signs local release builds with the debug key if no private key exists.
           ./gradlew :app:assembleRelease --no-daemon --stacktrace
           APK_PATH="app/build/outputs/apk/release/app-release.apk"
           if [ ! -s "$APK_PATH" ]; then
@@ -380,31 +380,7 @@ jobs:
             exit 1
           fi
           # Refuse to publish an APK that cannot start without a Metro server.
-          if ! unzip -Z1 "$APK_PATH" | grep -Eq '^assets/index\\.android\\.bundle
-          if [ -z "$APKSIGNER" ]; then
-            echo "apksigner non trovato: impossibile verificare la firma dell'APK." >&2
-            exit 1
-          fi
-          "$APKSIGNER" verify --verbose "$APK_PATH"
-          cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
-          echo "APK release autonomo: bundle JavaScript presente e firma verificata."
-
-      - name: Publish APK and diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: spirito-verita-android-apk-${{ github.run_number }}
-          path: |
-            spirito-verita.apk
-            package-lock.json
-            eas-build.json
-            eas-build-stderr.log
-            eas-download.json
-            eas-download-stderr.log
-            local-android-build.log
-          if-no-files-found: warn
-          retention-days: 14
-; then
+          if ! unzip -Z1 "$APK_PATH" | grep -Eq '^assets/index\.android\.bundle$'; then
             echo "Bundle JavaScript assets/index.android.bundle assente dall'APK release." >&2
             unzip -Z1 "$APK_PATH" | grep '^assets/' || true
             exit 1
@@ -416,7 +392,7 @@ jobs:
           fi
           "$APKSIGNER" verify --verbose "$APK_PATH"
           cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
-          echo "APK locale compilato e firma verificata."
+          echo "APK release autonomo: bundle JavaScript presente e firma verificata."
 
       - name: Publish APK and diagnostics
         if: always()

@@ -19,7 +19,7 @@ test('build inputs non espone il valore del token quando i prerequisiti successi
   const result = spawnSync(process.execPath, [script], { cwd: root, env: { ...process.env, EXPO_TOKEN: secret }, encoding: 'utf8' });
   assert.notEqual(result.status, 0);
   assert.doesNotMatch(result.stdout + result.stderr, new RegExp(secret));
-  assert.match(result.stderr, /controllo lockfile non superato|package-lock\.json assente|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato/);
+  assert.match(result.stderr, /controllo lockfile non superato|package-lock\.json assente|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato|controllo progetto Expo non superato/);
 });
 
 test('package espone il preflight unico per le build', () => {

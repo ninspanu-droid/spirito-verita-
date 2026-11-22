@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: spirito-verita-android-apk-v6
+  group: spirito-verita-android-apk-v7
   cancel-in-progress: false
 
 jobs:
@@ -441,7 +441,7 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 900
           script: |
-            bash -euo pipefail -c 'APK="${SPIRITO_APK_PATH:-${GITHUB_WORKSPACE:-}/spirito-verita.apk}"; LOG="${SPIRITO_LOG_PATH:-${GITHUB_WORKSPACE:-}/startup-logcat.txt}"; ACTIVITY_LOG="${GITHUB_WORKSPACE:-.}/activity-state.txt"; mkdir -p "$(dirname "$LOG")"; trap "adb logcat -d -v time > \"$LOG\" 2>&1 || true" EXIT; echo "APK=$APK"; test -s "$APK" || { echo "APK non trovato: $APK"; find /home/runner/work -maxdepth 7 -type f -name "*.apk" -print; exit 1; }; adb install -r "$APK"; adb logcat -c; adb shell am force-stop it.spiritoeverita.app; adb shell monkey -p it.spiritoeverita.app 1; sleep 30; PID="$(adb shell pidof -s it.spiritoeverita.app | tr -d "\\r")"; test -n "$PID" || { echo "Processo app non attivo dopo 30 secondi"; exit 1; }; adb shell dumpsys activity activities > "$ACTIVITY_LOG"; grep -E "mResumedActivity|topResumedActivity" "$ACTIVITY_LOG" | grep -F "it.spiritoeverita.app" || { echo "L'app non risulta in primo piano dopo 30 secondi"; tail -100 "$ACTIVITY_LOG"; exit 1; }; adb logcat -d -v time > "$LOG"; if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$LOG"; then echo "Errore di avvio rilevato"; exit 1; fi; echo "Avvio verificato: app in primo piano e processo attivo dopo 30 secondi, PID=$PID"'
+            bash -euo pipefail -c 'APK="${SPIRITO_APK_PATH:-${GITHUB_WORKSPACE:-}/spirito-verita.apk}"; LOG="${SPIRITO_LOG_PATH:-${GITHUB_WORKSPACE:-}/startup-logcat.txt}"; ACTIVITY_LOG="${GITHUB_WORKSPACE:-.}/activity-state.txt"; mkdir -p "$(dirname "$LOG")"; trap "adb logcat -d -v time > \"$LOG\" 2>&1 || true" EXIT; echo "APK=$APK"; test -s "$APK" || { echo "APK non trovato: $APK"; find /home/runner/work -maxdepth 7 -type f -name "*.apk" -print; exit 1; }; adb install -r "$APK"; adb logcat -c; adb shell am force-stop it.spiritoeverita.app; adb shell monkey -p it.spiritoeverita.app 1; sleep 30; PID="$(adb shell pidof -s it.spiritoeverita.app | tr -d "\\r")"; test -n "$PID" || { echo "Processo app non attivo dopo 30 secondi"; exit 1; }; adb shell dumpsys activity activities > "$ACTIVITY_LOG"; grep -E "mResumedActivity|topResumedActivity" "$ACTIVITY_LOG" | grep -F "it.spiritoeverita.app" || { echo "App non risulta in primo piano dopo 30 secondi"; tail -100 "$ACTIVITY_LOG"; exit 1; }; adb logcat -d -v time > "$LOG"; if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$LOG"; then echo "Errore di avvio rilevato"; exit 1; fi; echo "Avvio verificato: app in primo piano e processo attivo dopo 30 secondi, PID=$PID"'
 
       # Never label or distribute an APK as verified unless the emulator test passed.
       - name: Publish verified APK

@@ -46,7 +46,7 @@
     "@expo/vector-icons": "^14.1.0",
     "@noble/ciphers": "^1.2.1",
     "@noble/hashes": "^1.7.1",
-    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-async-storage/async-storage": "3.1.1",
     "base64-js": "^1.5.1",
     "expo": "~53.0.0",
     "expo-asset": "~11.1.7",

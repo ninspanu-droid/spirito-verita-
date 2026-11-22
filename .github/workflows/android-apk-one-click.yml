@@ -340,7 +340,7 @@ jobs:
 
       - name: Setup Java for local Android build
         if: steps.build-mode.outputs.mode == 'local'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'

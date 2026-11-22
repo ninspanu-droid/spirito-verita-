@@ -24,6 +24,9 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Reconcile lockfile for reviewed package overrides
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
       - name: Install exactly from lockfile
         run: npm ci --ignore-scripts --no-audit --no-fund
 

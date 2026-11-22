@@ -18,8 +18,8 @@ concurrency:
 
 jobs:
   build-apk:
-    # Ignore commits made by this workflow itself to prevent recursive builds.
-    if: github.actor != 'github-actions[bot]'
+    # Ignore bot commits on push to prevent recursive builds, but still validate PR updates.
+    if: github.actor != 'github-actions[bot]' || github.event_name == 'pull_request'
     name: Validate and build installable APK
     runs-on: ubuntu-latest
     timeout-minutes: 120

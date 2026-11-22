@@ -1,0 +1,15 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const pkg = require(path.join(root, 'package.json'));
+const app = require(path.join(root, 'app.json')).expo;
+const script = fs.readFileSync(path.join(root, 'scripts/check-github-publish.cjs'), 'utf8');
+const guide = fs.readFileSync(path.join(root, 'START-HERE-V10.6.md'), 'utf8');
+test('versione V10.6 allineata', () => { assert.equal(pkg.version, '1.0.42'); assert.equal(app.version, '1.0.42'); });
+test('preflight GitHub dichiarato in package.json', () => { assert.equal(pkg.scripts['check:github-publish'], 'node scripts/check-github-publish.cjs'); });
+test('preflight controlla Git, GitHub CLI, autenticazione e remote', () => { for (const x of ['Git installato','GitHub CLI installata','Autenticazione GitHub CLI','Remote origin configurato']) assert.ok(script.includes(x)); });
+test('preflight controlla lockfile e file sensibili', () => { assert.match(script, /package-lock\.json presente/); assert.match(script, /Nessun file sensibile comune/); assert.match(script, /\.\(jks\|keystore\)/); });
+test('preflight è informativo e non carica né modifica repository', () => { assert.match(script, /non crea repository, non carica file/); assert.doesNotMatch(script, /gh repo create|git push|gh secret set/); });
+test('guida contiene procedura GitHub ed Expo senza chiedere di condividere token', () => { assert.match(guide, /GitHub Desktop/); assert.match(guide, /EXPO_TOKEN/); assert.match(guide, /Non inviare il token in chat/); });

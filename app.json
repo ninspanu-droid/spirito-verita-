@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "SPIRITO & VERITÀ",
+    "slug": "spirito-verita",
+    "scheme": "spiritoverita",
+    "version": "1.0.42",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#192B29"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "allowBackup": false,
+      "package": "it.spiritoeverita.app"
+    },
+    "plugins": [
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ],
+      "expo-font",
+      "expo-asset"
+    ],
+    "ios": {
+      "bundleIdentifier": "it.spiritoeverita.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c41cc0f6-cbd5-4a4b-b036-3b9efa0f6828"
+      }
+    }
+  }
+}

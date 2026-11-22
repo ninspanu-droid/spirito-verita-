@@ -1,0 +1,14 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const workflow = fs.readFileSync(path.join(root, '.github/workflows/android-preview-build.yml'), 'utf8');
+const pkg = require(path.join(root, 'package.json'));
+const app = require(path.join(root, 'app.json')).expo;
+test('package e configurazione Expo sono allineati alla versione 1.0.42', () => { assert.equal(pkg.version, '1.0.42'); assert.equal(app.version, '1.0.42'); });
+test('build EAS Android salva il log senza perdere il codice di uscita', () => { assert.ok(workflow.includes('set -o pipefail')); assert.ok(workflow.includes('eas build --platform android --profile preview --non-interactive --wait 2>&1 | tee eas-build.log')); });
+test('il workflow pubblica un riepilogo anche in caso di errore', () => { assert.ok(workflow.includes('name: Publish Android build result\n        if: always()')); assert.ok(workflow.includes('JOB_STATUS')); });
+test('il workflow estrae il collegamento EAS senza stampare il token', () => { assert.ok(workflow.includes('BUILD_URL')); assert.ok(!workflow.includes('echo $EXPO_TOKEN')); });
+test('i log della build sono conservati anche se la build fallisce', () => { assert.ok(workflow.includes('name: Upload Android build diagnostics\n        if: always()')); assert.ok(workflow.includes('eas-build.log')); assert.ok(workflow.includes('retention-days: 14')); });
+test('il workflow chiarisce che l APK resta ospitato su EAS', () => { assert.ok(workflow.includes("L'APK resta ospitato da EAS")); });

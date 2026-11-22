@@ -450,7 +450,7 @@ jobs:
       # Never label or distribute an APK as verified unless the emulator test passed.
       - name: Publish verified APK
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spirito-verita-android-apk-${{ github.run_number }}-VERIFIED
           path: spirito-verita.apk
@@ -460,7 +460,7 @@ jobs:
       # Keep failed candidates available for diagnosis, but mark them unmistakably.
       - name: Publish unverified APK candidate for diagnosis
         if: failure() && hashFiles('spirito-verita.apk') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spirito-verita-android-apk-${{ github.run_number }}-UNVERIFIED
           path: |
@@ -473,7 +473,7 @@ jobs:
 
       - name: Publish build diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spirito-verita-android-diagnostics-${{ github.run_number }}
           path: |

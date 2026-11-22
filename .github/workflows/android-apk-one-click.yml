@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: spirito-verita-android-apk-v5
+  group: spirito-verita-android-apk-v6
   cancel-in-progress: false
 
 jobs:
@@ -440,37 +440,7 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 900
           script: |
-            set -Eeuo pipefail
-            echo "Workspace dichiarata: ${GITHUB_WORKSPACE:-<non impostata>}"
-            echo "Directory effettiva: $(pwd)"
-            APK="${SPIRITO_APK_PATH:-${GITHUB_WORKSPACE:-}/spirito-verita.apk}"
-            LOG="${SPIRITO_LOG_PATH:-${GITHUB_WORKSPACE:-}/startup-logcat.txt}"
-            if [ ! -s "$APK" ]; then
-              echo "APK non trovato nel percorso esplicito: $APK" >&2
-              echo "File APK disponibili nel workspace:" >&2
-              find /home/runner/work -maxdepth 7 -type f \( -name 'spirito-verita.apk' -o -name 'app-release.apk' \) -print 2>/dev/null | head -50 >&2 || true
-              echo "Contenuto workspace:" >&2
-              ls -la "${GITHUB_WORKSPACE:-/home/runner/work}" >&2 || true
-              exit 1
-            fi
-            mkdir -p "$(dirname "$LOG")"
-            adb install -r "$APK"
-            adb logcat -c
-            adb shell am force-stop it.spiritoeverita.app
-            adb shell monkey -p it.spiritoeverita.app 1
-            sleep 30
-            adb logcat -d -v time > "$LOG"
-            PID="$(adb shell pidof -s it.spiritoeverita.app | tr -d '\r')"
-            if [ -z "$PID" ]; then
-              echo "L'app non è rimasta attiva dopo l'avvio." >&2
-              tail -300 "$LOG" >&2
-              exit 1
-            fi
-            if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$LOG"; then
-              echo "Rilevato un errore di avvio nell'APK." >&2
-              exit 1
-            fi
-            echo "APK installato; processo $PID ancora attivo dopo 30 secondi."
+            bash -euo pipefail -c 'APK="${SPIRITO_APK_PATH:-${GITHUB_WORKSPACE:-}/spirito-verita.apk}"; LOG="${SPIRITO_LOG_PATH:-${GITHUB_WORKSPACE:-}/startup-logcat.txt}"; echo "APK=$APK"; test -s "$APK" || { echo "APK non trovato: $APK"; find /home/runner/work -maxdepth 7 -type f -name "*.apk" -print; exit 1; }; mkdir -p "$(dirname "$LOG")"; adb install -r "$APK"; adb logcat -c; adb shell am force-stop it.spiritoeverita.app; adb shell monkey -p it.spiritoeverita.app 1; sleep 30; adb logcat -d -v time > "$LOG"; PID="$(adb shell pidof -s it.spiritoeverita.app | tr -d "\r")"; test -n "$PID" || { echo "App non attiva dopo 30 secondi"; tail -300 "$LOG"; exit 1; }; if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$LOG"; then echo "Errore di avvio rilevato"; exit 1; fi; echo "App attiva dopo 30 secondi, PID=$PID"'
 
       - name: Publish APK and diagnostics
         if: always()

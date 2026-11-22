@@ -2,6 +2,9 @@ name: Build Android APK (one click)
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - publish/v10.6.5
@@ -250,6 +253,7 @@ jobs:
       # Persist the fully restored and validated app source (including the
       # dependency, icon, and EAS-link fixes) to the release branch.
       - name: Publish validated source and fixes to release branch
+        if: github.event_name != 'pull_request'
         run: |
           git status --short
           # Another manually-triggered run may have advanced the release branch.

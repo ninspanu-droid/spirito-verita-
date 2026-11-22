@@ -5,7 +5,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { initializeDatabase } from './database';
 import { getOrCreateSqlCipherKey } from './sqlCipherKey';
 
-const DATABASE_KEY_NAME = 'spirito-verita:sqlcipher:key:v1';
+const DATABASE_KEY_NAME = 'spirito-verita.sqlcipher.key.v1';
 const LEGACY_DATABASE_NAME = 'spirito-verita.db';
 const SECURE_DATABASE_NAME = 'spirito-verita-secure.db';
 

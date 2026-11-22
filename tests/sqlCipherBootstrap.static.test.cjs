@@ -22,6 +22,13 @@ test('SQLiteProvider usa il database cifrato e il bootstrap dedicato', () => {
   assert.match(layout, /onInit=\{initializeSecureDatabase\}/);
 });
 
+test('il nome della chiave SecureStore rispetta il formato ammesso da Android', () => {
+  const match = bootstrap.match(/const DATABASE_KEY_NAME = '([^']+)'/);
+  assert.ok(match, 'nome chiave SecureStore non trovato');
+  assert.match(match[1], /^[A-Za-z0-9._-]+$/, 'SecureStore key contiene caratteri non ammessi');
+  assert.doesNotMatch(match[1], /:/, 'i due punti non sono ammessi nel nome della chiave');
+});
+
 test('il bootstrap controlla SQLCipher prima di applicare la chiave', () => {
   const cipherCheck = bootstrap.indexOf("PRAGMA cipher_version");
   const keyApplication = bootstrap.indexOf('PRAGMA key');

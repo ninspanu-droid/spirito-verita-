@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: spirito-verita-android-apk-v4
+  group: spirito-verita-android-apk-v5
   cancel-in-progress: false
 
 jobs:
@@ -407,40 +407,70 @@ jobs:
           cp "$APK_PATH" "$GITHUB_WORKSPACE/spirito-verita.apk"
           echo "APK release autonomo: bundle JavaScript presente e firma verificata."
 
+      # On GitHub Linux runners, expose /dev/kvm when available. This avoids
+      # the extremely slow TCG-only boot; TCG remains an explicit fallback.
+      - name: Enable Android emulator KVM acceleration when available
+        if: steps.build-mode.outputs.mode == 'local'
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [ -e /dev/kvm ]; then
+            echo 'KVM device found; applying the Android emulator udev permissions.'
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+            ls -l /dev/kvm
+          else
+            echo 'KVM is unavailable; Android emulator will use the slower TCG fallback.'
+          fi
+
       # Build success is not proof that React Native starts. Install and launch
       # the exact APK in a clean Android emulator before publishing the artifact.
       - name: Install and smoke-test APK on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
-        # GitHub-hosted runners may not expose KVM. The emulator action then
-        # starts with -accel off; Android Emulator requires explicit TCG opt-in.
         env:
           ANDROID_I_WANT_MY_TCG: "yes"
+          SPIRITO_APK_PATH: ${{ github.workspace }}/spirito-verita.apk
+          SPIRITO_LOG_PATH: ${{ github.workspace }}/startup-logcat.txt
         with:
           api-level: 35
           target: google_apis
           arch: x86_64
           profile: pixel_2
           disable-animations: true
+          emulator-boot-timeout: 900
           script: |
             set -Eeuo pipefail
-            APK="$GITHUB_WORKSPACE/spirito-verita.apk"
-            test -s "$APK"
+            echo "Workspace dichiarata: ${GITHUB_WORKSPACE:-<non impostata>}"
+            echo "Directory effettiva: $(pwd)"
+            APK="${SPIRITO_APK_PATH:-${GITHUB_WORKSPACE:-}/spirito-verita.apk}"
+            LOG="${SPIRITO_LOG_PATH:-${GITHUB_WORKSPACE:-}/startup-logcat.txt}"
+            if [ ! -s "$APK" ]; then
+              echo "APK non trovato nel percorso esplicito: $APK" >&2
+              echo "File APK disponibili nel workspace:" >&2
+              find /home/runner/work -maxdepth 7 -type f \( -name 'spirito-verita.apk' -o -name 'app-release.apk' \) -print 2>/dev/null | head -50 >&2 || true
+              echo "Contenuto workspace:" >&2
+              ls -la "${GITHUB_WORKSPACE:-/home/runner/work}" >&2 || true
+              exit 1
+            fi
+            mkdir -p "$(dirname "$LOG")"
             adb install -r "$APK"
             adb logcat -c
             adb shell am force-stop it.spiritoeverita.app
             adb shell monkey -p it.spiritoeverita.app 1
-            sleep 20
-            adb logcat -d -v time > "$GITHUB_WORKSPACE/startup-logcat.txt"
-            if [ -z "$(adb shell pidof -s it.spiritoeverita.app | tr -d '\r')" ]; then
+            sleep 30
+            adb logcat -d -v time > "$LOG"
+            PID="$(adb shell pidof -s it.spiritoeverita.app | tr -d '\r')"
+            if [ -z "$PID" ]; then
               echo "L'app non è rimasta attiva dopo l'avvio." >&2
-              tail -200 "$GITHUB_WORKSPACE/startup-logcat.txt" >&2
+              tail -300 "$LOG" >&2
               exit 1
             fi
-            if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$GITHUB_WORKSPACE/startup-logcat.txt"; then
+            if grep -E "FATAL EXCEPTION|Fatal signal|Unable to load script|Unhandled JS Exception|Invariant Violation" "$LOG"; then
               echo "Rilevato un errore di avvio nell'APK." >&2
               exit 1
             fi
-            echo "APK installato e processo app attivo dopo 20 secondi."
+            echo "APK installato; processo $PID ancora attivo dopo 30 secondi."
 
       - name: Publish APK and diagnostics
         if: always()

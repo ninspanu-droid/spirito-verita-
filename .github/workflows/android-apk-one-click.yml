@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: spirito-verita-android-apk-v7
+  group: spirito-verita-android-apk-v8
   cancel-in-progress: false
 
 jobs:

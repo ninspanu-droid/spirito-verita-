@@ -47,7 +47,6 @@ export async function initializeDatabase(db: SQLiteDatabase, seedModules = true)
     } finally {
       await insert.finalizeAsync();
     }
-  }
 
     // Aggiorna soltanto le voci segnaposto dei primi dieci moduli.
     // Non modifica preferiti, progressi o annotazioni già presenti.

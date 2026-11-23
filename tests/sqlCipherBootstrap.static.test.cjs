@@ -36,7 +36,7 @@ test('la migrazione non elimina il database legacy', () => {
 });
 
 test('la chiave SecureStore usa solo caratteri Android ammessi', () => {
-  const match = bootstrap.match(/DATABASE_KEY_NAME\\s*=\\s*'([^']+)'/);
+  const match = bootstrap.match(/DATABASE_KEY_NAME\s*=\s*'([^']+)'/);
   assert.ok(match, 'nome chiave SecureStore assente');
   assert.match(match[1], /^[A-Za-z0-9._-]+$/);
   assert.doesNotMatch(match[1], /:/);

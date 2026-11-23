@@ -9,6 +9,7 @@ import { AppButton } from '../../components/AppButton';
 import { colors, spacing } from '../../constants/theme';
 import { getCatalog, setModuleCompleted, toggleFavorite, type CatalogRow } from '../../database/database';
 import { discipleshipLessons } from '../../data/discepolato';
+import { ministryLessons } from '../../data/ministero';
 
 export default function ModuleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -29,7 +30,7 @@ export default function ModuleDetailScreen() {
   if (loading) return <Screen><ActivityIndicator color={colors.forest} /></Screen>;
   if (!item) return <Screen><Text>Modulo non trovato.</Text><AppButton title="Torna al catalogo" onPress={() => router.back()} /></Screen>;
 
-  const lesson = discipleshipLessons.find((entry) => entry.id === moduleId);
+  const lesson = [...discipleshipLessons, ...ministryLessons].find((entry) => entry.id === moduleId);
   const available = item.status === 'ready';
 
   return (

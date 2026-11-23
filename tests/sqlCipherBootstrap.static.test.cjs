@@ -35,6 +35,13 @@ test('la migrazione non elimina il database legacy', () => {
   assert.doesNotMatch(bootstrap, /removeItemAsync\s*\(\s*DATABASE_KEY_NAME/);
 });
 
+test('la chiave SecureStore usa solo caratteri Android ammessi', () => {
+  const match = bootstrap.match(/DATABASE_KEY_NAME\\s*=\\s*'([^']+)'/);
+  assert.ok(match, 'nome chiave SecureStore assente');
+  assert.match(match[1], /^[A-Za-z0-9._-]+$/);
+  assert.doesNotMatch(match[1], /:/);
+});
+
 test('la chiave ha 32 byte casuali e viene verificata in SecureStore', () => {
   assert.match(bootstrap, /getOrCreateSqlCipherKey\(/);
   assert.match(bootstrap, /getRandomBytesAsync\(32\)/);

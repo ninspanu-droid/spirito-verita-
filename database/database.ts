@@ -50,7 +50,7 @@ export async function initializeDatabase(db: SQLiteDatabase, seedModules = true)
 
     // Aggiorna soltanto le voci segnaposto dei primi dieci moduli.
     // Non modifica preferiti, progressi o annotazioni già presenti.
-    for (const item of moduleSeed.slice(0, 10)) {
+    for (const item of moduleSeed) {
       await db.runAsync(
         "UPDATE modules SET title = ?, category = ?, status = ? WHERE id = ? AND title LIKE 'Modulo % — contenuto da integrare'",
         item.title, item.category, item.status, item.id

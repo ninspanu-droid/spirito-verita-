@@ -8,6 +8,7 @@ import { AppCard } from '../../components/AppCard';
 import { AppButton } from '../../components/AppButton';
 import { colors, spacing } from '../../constants/theme';
 import { getCatalog, setModuleCompleted, toggleFavorite, type CatalogRow } from '../../database/database';
+import { discipleshipLessons } from '../../data/discepolato';
 
 export default function ModuleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +29,7 @@ export default function ModuleDetailScreen() {
   if (loading) return <Screen><ActivityIndicator color={colors.forest} /></Screen>;
   if (!item) return <Screen><Text>Modulo non trovato.</Text><AppButton title="Torna al catalogo" onPress={() => router.back()} /></Screen>;
 
+  const lesson = discipleshipLessons.find((entry) => entry.id === moduleId);
   const available = item.status === 'ready';
 
   return (
@@ -36,30 +38,38 @@ export default function ModuleDetailScreen() {
         <Pressable onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={20} color={colors.ivory} /></Pressable>
         <Text style={styles.eyebrow}>MODULO {String(item.id).padStart(3, '0')}</Text>
       </View>
-      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.title}>{lesson?.title ?? item.title}</Text>
       <Text style={styles.category}>{item.category}</Text>
-      <AppCard>
-        {available ? (
-          <>
-            <Text style={styles.section}>Contenuto disponibile</Text>
-            <Text style={styles.body}>Questo modulo è presente nel catalogo iniziale. In questa versione sono registrati titolo e categoria; la meditazione completa, le preghiere e le attività quotidiane saranno aggiunte nel passaggio editoriale dei contenuti.</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.section}>Contenuto da integrare</Text>
-            <Text style={styles.body}>Questo elemento è già predisposto nel catalogo, ma il contenuto spirituale completo non è ancora stato inserito. È contrassegnato come bozza per non presentare testi mancanti come già realizzati.</Text>
-          </>
-        )}
-      </AppCard>
-      <AppButton
-        title={item.favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
-        secondary
-        onPress={async () => { await toggleFavorite(db, item.id, item.favorite === 1); await refresh(); }}
-      />
-      <AppButton
-        title={item.completed ? 'Segna come non completato' : 'Segna come completato'}
-        onPress={async () => { await setModuleCompleted(db, item.id, item.completed !== 1); await refresh(); }}
-      />
+      {lesson ? <>
+        <AppCard>
+          <Text style={styles.section}>Obiettivo dello studio</Text>
+          <Text style={styles.body}>{lesson.aim}</Text>
+          <Text style={styles.section}>Tema</Text>
+          <Text style={styles.body}>{lesson.theme}</Text>
+          <Text style={styles.section}>Brani biblici</Text>
+          {lesson.reading.map((reference) => <Text key={reference} style={styles.bullet}>• {reference}</Text>)}
+          <Text style={styles.caption}>Riferimento centrale: {lesson.reference}</Text>
+        </AppCard>
+        <AppCard>
+          <Text style={styles.section}>Insegnamento</Text>
+          {lesson.teaching.map((point, index) => <Text key={index} style={styles.body}>{index + 1}. {point}</Text>)}
+        </AppCard>
+        <AppCard>
+          <Text style={styles.section}>Domande per la riflessione</Text>
+          {lesson.questions.map((question, index) => <Text key={index} style={styles.body}>{index + 1}. {question}</Text>)}
+        </AppCard>
+        <AppCard>
+          <Text style={styles.section}>Applicazione pratica</Text>
+          <Text style={styles.body}>{lesson.practice}</Text>
+          <Text style={styles.section}>Preghiera</Text>
+          <Text style={styles.body}>{lesson.prayer}</Text>
+        </AppCard>
+      </> : <AppCard>
+        <Text style={styles.section}>{available ? 'Contenuto disponibile' : 'Contenuto da integrare'}</Text>
+        <Text style={styles.body}>Questo modulo non appartiene ancora al percorso di discepolato. Il contenuto sarà integrato in un successivo aggiornamento editoriale.</Text>
+      </AppCard>}
+      <AppButton title={item.favorite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'} secondary onPress={async () => { await toggleFavorite(db, item.id, item.favorite === 1); await refresh(); }} />
+      <AppButton title={item.completed ? 'Segna come non completato' : 'Segna come completato'} onPress={async () => { await setModuleCompleted(db, item.id, item.completed !== 1); await refresh(); }} />
     </Screen>
   );
 }
@@ -72,4 +82,6 @@ const styles = StyleSheet.create({
   category: { color: colors.goldDeep, fontWeight: '700' },
   section: { color: colors.forest, fontWeight: '800', fontSize: 18 },
   body: { color: colors.ink, fontSize: 14, lineHeight: 23 },
+  bullet: { color: colors.ink, fontSize: 14, lineHeight: 22 },
+  caption: { color: colors.muted, fontSize: 12, lineHeight: 18 },
 });

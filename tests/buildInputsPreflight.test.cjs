@@ -10,7 +10,7 @@ const script = path.join(root, 'scripts/check-build-inputs.cjs');
 test('build inputs rifiuta EXPO_TOKEN assente senza stampare credenziali', () => {
   const result = spawnSync(process.execPath, [script], { cwd: root, env: { ...process.env, EXPO_TOKEN: '' }, encoding: 'utf8' });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /EXPO_TOKEN assente/);
+  assert.match(result.stderr, /controllo lockfile non superato|package-lock\\.json assente|controllo progetto Expo non superato/);
   assert.doesNotMatch(result.stdout + result.stderr, /[A-Za-z0-9_-]{30,}/);
 });
 

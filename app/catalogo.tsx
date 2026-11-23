@@ -9,7 +9,7 @@ import { AppButton } from '../components/AppButton';
 import { colors, radius, spacing } from '../constants/theme';
 import { getCatalog, toggleFavorite, type CatalogRow } from '../database/database';
 
-const categories = ['Tutti', 'Consolazione', 'Famiglia', 'Relazioni', 'Discernimento', 'Da completare'];
+const categories = ['Tutti', 'Discepolato', 'Consolazione', 'Famiglia', 'Relazioni', 'Discernimento', 'Da completare'];
 
 export default function CatalogScreen() {
   const db = useSQLiteContext();

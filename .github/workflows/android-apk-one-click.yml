@@ -5,6 +5,7 @@ on:
   pull_request:
     branches:
       - main
+      - publish/v10.6.5
   push:
     branches:
       - publish/v10.6.5

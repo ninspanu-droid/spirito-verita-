@@ -87,6 +87,18 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Download and prepare the public-domain Riveduta 1927 Bible
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ARCHIVE="$RUNNER_TEMP/ita1927_usfm.zip"
+          SOURCE_DIR="$RUNNER_TEMP/ita1927_usfm"
+          curl --fail --silent --show-error --location "https://ebible.org/Scriptures/ita1927_usfm.zip" --output "$ARCHIVE"
+          mkdir -p "$SOURCE_DIR"
+          unzip -q "$ARCHIVE" -d "$SOURCE_DIR"
+          node scripts/build-bible.cjs "$SOURCE_DIR" data/bible.generated.ts
+          test -s data/bible.generated.ts
+
       # Expo SDK 53 requires React Native 0.79.6. Align the exact package
       # version before running the compatibility gate and building the APK.
       - name: Align Expo SDK runtime dependencies
